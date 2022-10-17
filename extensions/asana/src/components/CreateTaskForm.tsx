@@ -3,6 +3,7 @@ import { format } from "date-fns";
 import { FormValidation, getAvatarIcon, useForm } from "@raycast/utils";
 import { useMemo } from "react";
 import { useWorkspaces } from "../hooks/useWorkspaces";
+import { useTeams } from "../hooks/useTeams";
 import { useProjects } from "../hooks/useProjects";
 import { useUsers } from "../hooks/useUsers";
 import { useMe } from "../hooks/useMe";
@@ -17,6 +18,7 @@ export default function CreateTaskForm(props: {
   draftValues?: TaskFormValues;
   assignee?: string;
   workspace?: string;
+  teams?: string;
   fromEmptyView?: boolean;
 }) {
   const { push } = useNavigation();
@@ -49,6 +51,7 @@ export default function CreateTaskForm(props: {
 
         const task = await createTask({
           workspace: values.workspace,
+          teams: values.team,
           name: values.name,
           custom_fields: customFields,
           ...(values.projects && values.projects.length > 0 ? { projects: values.projects } : {}),
@@ -87,10 +90,12 @@ export default function CreateTaskForm(props: {
     },
     validation: {
       workspace: FormValidation.Required,
+      team: FormValidation.Required,
       name: FormValidation.Required,
     },
     initialValues: {
       workspace: props.draftValues?.workspace || props.workspace,
+      team: props.draftValues?.team || props.teams,
       projects: props.draftValues?.projects,
       name: props.draftValues?.name,
       description: props.draftValues?.description,
@@ -100,7 +105,8 @@ export default function CreateTaskForm(props: {
   });
 
   const { data: workspaces } = useWorkspaces();
-  const { data: allProjects } = useProjects(values.workspace);
+  const { data: teams } = useTeams(values.workspace);
+  const { data: allProjects } = useProjects(values.team);
   const { data: users } = useUsers(values.workspace);
   const { data: me } = useMe();
 
@@ -126,9 +132,21 @@ export default function CreateTaskForm(props: {
       }
       enableDrafts={!props.fromEmptyView}
     >
-      <Form.Dropdown title="Workspace" storeValue {...itemProps.workspace}>
+      <Form.Dropdown title="Workspace" storeValue  {...itemProps.workspace}>
         {workspaces?.map((workspace) => {
           return <Form.Dropdown.Item key={workspace.gid} value={workspace.gid} title={workspace.name} />;
+        })}
+      </Form.Dropdown>
+
+      <Form.Dropdown title="Teams" storeValue autoFocus {...itemProps.team}>
+        {teams?.map((teams) => {
+          return (
+          <Form.Dropdown.Item 
+            key={teams.gid} 
+            value={teams.gid} 
+            title={teams.name} 
+            />
+          );
         })}
       </Form.Dropdown>
 
@@ -147,7 +165,7 @@ export default function CreateTaskForm(props: {
 
       <Form.Separator />
 
-      <Form.TextField title="Task Name" placeholder="Short title for the task" autoFocus {...itemProps.name} />
+      <Form.TextField title="Task Name" placeholder="Short title for the task"  {...itemProps.name} />
 
       <Form.TextArea title="Description" placeholder="Add more detail to this task" {...itemProps.description} />
 
